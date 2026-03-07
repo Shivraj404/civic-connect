@@ -9,6 +9,7 @@ import ReportIssuePage from "./pages/ReportIssue";
 import TrackIssuesPage from "./pages/TrackIssues";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/report" element={<ReportIssuePage />} />
           <Route path="/track" element={<TrackIssuesPage />} />
+          <Route path="/auth" element={<Auth />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
