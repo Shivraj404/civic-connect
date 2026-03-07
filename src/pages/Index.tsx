@@ -60,9 +60,9 @@ const Index = () => {
                   Report an Issue <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Link to="/map">
+              <Link to="/track">
                 <Button variant="hero-outline" size="lg" className="gap-2">
-                  <MapPin className="h-4 w-4" /> View Live Map
+                  <BarChart3 className="h-4 w-4" /> Track Issues
                 </Button>
               </Link>
             </motion.div>

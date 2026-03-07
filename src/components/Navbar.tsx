@@ -12,9 +12,8 @@ const Navbar = () => {
   const links = [
     { to: "/", label: "Home" },
     { to: "/report", label: "Report Issue" },
-    { to: "/map", label: "Live Map" },
     { to: "/track", label: "Track Issues" },
-    { to: "/admin", label: "Admin" },
+    { to: "/admin/login", label: "Admin" },
   ];
 
   return (
