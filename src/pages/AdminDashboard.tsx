@@ -1,20 +1,44 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { MOCK_ISSUES, CATEGORY_INFO, STATUS_INFO, DEPARTMENT_INFO, type CivicIssue, type IssueStatus } from "@/lib/civic-data";
 import { useIssueFilters, StatCard } from "@/components/DashboardWidgets";
-import IssueMap from "@/components/IssueMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { BarChart3, Users, CheckCircle2, Clock, AlertTriangle, Search, Trash2, Flame } from "lucide-react";
+import { BarChart3, CheckCircle2, Clock, AlertTriangle, Search, Trash2, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-/* Admin Dashboard — manage complaints, view analytics, heatmap */
+/* Admin Dashboard — manage complaints, view analytics */
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [issues, setIssues] = useState<CivicIssue[]>(MOCK_ISSUES);
   const { filtered, stats, categoryFilter, setCategoryFilter, statusFilter, setStatusFilter, search, setSearch } = useIssueFilters(issues);
-  const [activeTab, setActiveTab] = useState<"complaints" | "analytics" | "heatmap">("complaints");
+  const [activeTab, setActiveTab] = useState<"complaints" | "analytics">("complaints");
+
+  /* Check if admin is authenticated */
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/admin/login");
+      }
+    };
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) navigate("/admin/login");
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.success("Logged out successfully");
+    navigate("/admin/login");
+  };
 
   /* Update issue status */
   const updateStatus = (id: string, newStatus: IssueStatus) => {
@@ -46,8 +70,15 @@ const AdminDashboard = () => {
     <div className="min-h-screen pt-24 pb-12">
       <div className="container mx-auto px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="font-display text-3xl font-bold text-foreground mb-1">Admin Dashboard</h1>
-          <p className="text-muted-foreground mb-6">Manage complaints, view analytics, and identify hotspots</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="font-display text-3xl font-bold text-foreground mb-1">Admin Dashboard</h1>
+              <p className="text-muted-foreground mb-6">Manage complaints and view analytics</p>
+            </div>
+            <Button variant="outline" onClick={handleLogout} className="gap-2">
+              <LogOut className="h-4 w-4" /> Logout
+            </Button>
+          </div>
         </motion.div>
 
         {/* Stat cards */}
@@ -63,7 +94,6 @@ const AdminDashboard = () => {
           {[
             { id: "complaints" as const, label: "Complaints", icon: <AlertTriangle className="h-4 w-4" /> },
             { id: "analytics" as const, label: "Analytics", icon: <BarChart3 className="h-4 w-4" /> },
-            { id: "heatmap" as const, label: "AI Heatmap", icon: <Flame className="h-4 w-4" /> },
           ].map((tab) => (
             <Button
               key={tab.id}
@@ -216,18 +246,6 @@ const AdminDashboard = () => {
           </motion.div>
         )}
 
-        {/* ===== HEATMAP TAB ===== */}
-        {activeTab === "heatmap" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="glass-card rounded-xl p-4 mb-4">
-              <p className="text-sm text-muted-foreground">
-                <Flame className="inline h-4 w-4 text-civic-rose mr-1" />
-                The AI Heatmap highlights areas with the highest concentration of complaints, helping identify infrastructure problem hotspots.
-              </p>
-            </div>
-            <IssueMap issues={issues} className="h-[65vh]" showHeatmap={true} />
-          </motion.div>
-        )}
       </div>
     </div>
   );
