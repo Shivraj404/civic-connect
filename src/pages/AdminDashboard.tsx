@@ -7,8 +7,9 @@ import { useIssueFilters, StatCard } from "@/components/DashboardWidgets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { BarChart3, CheckCircle2, Clock, AlertTriangle, Search, Trash2, LogOut, Loader2, ShieldAlert } from "lucide-react";
+import { BarChart3, CheckCircle2, Clock, AlertTriangle, Search, Trash2, LogOut, Loader2, ShieldAlert, Eye, Image as ImageIcon, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -23,6 +24,7 @@ const AdminDashboard = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"complaints" | "analytics">("complaints");
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [selectedIssue, setSelectedIssue] = useState<CivicIssue | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -32,13 +34,11 @@ const AdminDashboard = () => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/admin/login"); return; }
-
       const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id);
       const hasAdmin = roles?.some((r: any) => r.role === "admin") ?? false;
       setIsAdmin(hasAdmin);
     };
     checkAuth();
-
     return () => subscription.unsubscribe();
   }, [navigate]);
 
@@ -156,6 +156,7 @@ const AdminDashboard = () => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/50">
+                        <th className="text-left py-3 px-4 font-semibold text-foreground">Photo</th>
                         <th className="text-left py-3 px-4 font-semibold text-foreground">Issue</th>
                         <th className="text-left py-3 px-4 font-semibold text-foreground hidden md:table-cell">Category</th>
                         <th className="text-left py-3 px-4 font-semibold text-foreground hidden lg:table-cell">Department</th>
@@ -166,6 +167,21 @@ const AdminDashboard = () => {
                     <tbody>
                       {filtered.map((issue) => (
                         <tr key={issue.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                          <td className="py-3 px-4">
+                            {issue.image_url ? (
+                              <img
+                                src={issue.image_url}
+                                alt=""
+                                className="h-12 w-12 rounded-lg object-cover cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                                onClick={() => setSelectedIssue(issue)}
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
+                                <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
+                              </div>
+                            )}
+                          </td>
                           <td className="py-3 px-4">
                             <p className="font-medium text-foreground">{issue.title}</p>
                             <p className="text-xs text-muted-foreground">{issue.user_name} • {issue.address}</p>
@@ -187,9 +203,14 @@ const AdminDashboard = () => {
                             </Select>
                           </td>
                           <td className="py-3 px-4">
-                            <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(issue.id)} className="text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => setSelectedIssue(issue)} className="text-muted-foreground hover:text-primary">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(issue.id)} className="text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -248,6 +269,59 @@ const AdminDashboard = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Issue Detail Dialog */}
+      <Dialog open={!!selectedIssue} onOpenChange={() => setSelectedIssue(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedIssue && (
+            <div className="space-y-4">
+              {selectedIssue.image_url && (
+                <img
+                  src={selectedIssue.image_url}
+                  alt={selectedIssue.title}
+                  className="w-full h-64 object-cover rounded-xl"
+                />
+              )}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`${CATEGORY_INFO[selectedIssue.category]?.badgeClass} text-xs font-semibold px-2.5 py-1 rounded-full`}>
+                    {CATEGORY_INFO[selectedIssue.category]?.icon} {CATEGORY_INFO[selectedIssue.category]?.label}
+                  </span>
+                  <span className={`${STATUS_INFO[selectedIssue.status]?.className} text-xs font-semibold px-2.5 py-1 rounded-full`}>
+                    {STATUS_INFO[selectedIssue.status]?.label}
+                  </span>
+                </div>
+                <h2 className="font-display text-xl font-bold text-foreground">{selectedIssue.title}</h2>
+                <p className="text-muted-foreground mt-2">{selectedIssue.description}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-muted-foreground text-xs mb-1">Reported by</p>
+                  <p className="font-medium text-foreground">{selectedIssue.user_name || "Anonymous"}</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-muted-foreground text-xs mb-1">Department</p>
+                  <p className="font-medium text-foreground">{DEPARTMENT_INFO[selectedIssue.department]?.label}</p>
+                </div>
+                {selectedIssue.address && (
+                  <div className="bg-muted/50 rounded-lg p-3 col-span-2">
+                    <p className="text-muted-foreground text-xs mb-1 flex items-center gap-1"><MapPin className="h-3 w-3" /> Location</p>
+                    <p className="font-medium text-foreground">{selectedIssue.address}</p>
+                  </div>
+                )}
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-muted-foreground text-xs mb-1">Reported</p>
+                  <p className="font-medium text-foreground">{new Date(selectedIssue.created_at).toLocaleDateString()}</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-muted-foreground text-xs mb-1">Last Updated</p>
+                  <p className="font-medium text-foreground">{new Date(selectedIssue.updated_at).toLocaleDateString()}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

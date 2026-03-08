@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CATEGORY_INFO, DEPARTMENT_INFO, type IssueCategory } from "@/lib/civic-data";
-import { MapPin, Upload, Zap, CheckCircle2, Loader2 } from "lucide-react";
+import { MapPin, Upload, Zap, CheckCircle2, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -92,6 +92,12 @@ const ReportIssuePage = () => {
     reader.readAsDataURL(file);
   };
 
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setAiSuggestion(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !description || !category || !userId) {
@@ -141,7 +147,9 @@ const ReportIssuePage = () => {
       <div className="min-h-screen pt-24 pb-12">
         <div className="container mx-auto px-4 max-w-lg text-center">
           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass-card rounded-2xl p-10">
-            <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-4" />
+            <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 className="h-10 w-10 text-primary" />
+            </div>
             <h2 className="font-display text-2xl font-bold text-foreground mb-2">Issue Reported!</h2>
             <p className="text-muted-foreground mb-2">
               Your complaint has been submitted and routed to the{" "}
@@ -149,7 +157,7 @@ const ReportIssuePage = () => {
             </p>
             <p className="text-sm text-muted-foreground mb-6">You can track it on the Track Issues page.</p>
             <div className="flex gap-3 justify-center">
-              <Button variant="hero" onClick={() => { setSubmitted(false); setTitle(""); setDescription(""); setCategory(""); setImagePreview(null); setImageFile(null); setAiSuggestion(null); setLocation(null); setAddress(""); }}>
+              <Button variant="hero" onClick={() => { setSubmitted(false); setTitle(""); setDescription(""); setCategory(""); clearImage(); setLocation(null); setAddress(""); }}>
                 Report Another
               </Button>
               <Button variant="outline" onClick={() => navigate("/track")}>Track Issues</Button>
@@ -184,7 +192,16 @@ const ReportIssuePage = () => {
             <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary/50 transition-colors">
               {imagePreview ? (
                 <div className="space-y-3">
-                  <img src={imagePreview} alt="Uploaded" className="max-h-48 mx-auto rounded-lg object-cover" />
+                  <div className="relative inline-block">
+                    <img src={imagePreview} alt="Uploaded" className="max-h-48 mx-auto rounded-lg object-cover" />
+                    <button
+                      type="button"
+                      onClick={clearImage}
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:scale-110 transition-transform"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
                   {aiDetecting && (
                     <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" /> AI analyzing image...
@@ -200,6 +217,7 @@ const ReportIssuePage = () => {
                 <label className="cursor-pointer">
                   <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">Click to upload or drag & drop</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">JPG, PNG up to 10MB</p>
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                 </label>
               )}
